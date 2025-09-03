@@ -164,7 +164,7 @@ handle_arg:
   mov rdi, HELP
   mov rsi, HELP_LEN
   call writeout
-  mov rdi, EXIT_OK
+  mov edi, EXIT_OK
   call exit
 
 .version:
