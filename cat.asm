@@ -6,6 +6,7 @@ section .data
 
 SYS_READ: equ 0
 SYS_WRITE: equ 1
+SYS_OPEN: equ 2
 SYS_EXIT: equ 60
 
 EXIT_OK: equ 0
@@ -18,10 +19,31 @@ STDERR: equ 2
 ; Default buffer size from stdio.h
 BUFSIZ: equ 8192
 
-HELP: db "The help!!", 10, 0
+; The help comes from the GNU cat command:
+HELP : db "Usage: cat [OPTION]... [FILE]...", 10
+  .1 : db "Concatenate FILE(s) to standard output.", 10, 10
+  .2 : db "With no FILE, or when FILE is -, read standard input.", 10, 10
+  .3 : db "  -A, --show-all           equivalent to -vET", 10
+  .4 : db "  -b, --number-nonblank    number nonempty output lines, overrides -n", 10
+  .5 : db "  -e                       equivalent to -vE", 10
+  .6 : db "  -E, --show-ends          display $ at end of each line", 10
+  .7 : db "  -n, --number             number all output lines", 10
+  .8 : db "  -s, --squeeze-blank      suppress repeated empty output lines", 10
+  .9 : db "  -t                       equivalent to -vT", 10
+  .10: db "  -T, --show-tabs          display TAB characters as ^I", 10
+  .11: db "  -u                       (ignored)", 10
+  .12: db "  -v, --show-nonprinting   use ^ and M- notation, except for LFD and TAB", 10
+  .13: db "      --help        display this help and exit", 10
+  .14: db "      --version     output version information and exit", 10, 10
+  .15: db "Examples:", 10
+  .16: db "  cat f - g  Output f's contents, then standard input, then g's contents.", 10
+  .17: db "  cat        Copy standard input to standard output.", 10, 10
+  .18: db "GNU coreutils online help: <https://www.gnu.org/software/coreutils/>", 10
+  .19: db "Full documentation <https://www.gnu.org/software/coreutils/cat>", 10
+  .20: db "or available locally via: info '(coreutils) cat invocation'", 10, 0
 HELP_LEN: equ $-HELP
 
-VERSION: db "Version!!", 10, 0
+VERSION: db "cat (Linux x86_64 ASM clone) 0.0", 10, 0
 VERSION_LEN: equ $-VERSION
 
 INVALID_OPTION: db "cat: invalid option '%'", 10, "Try cat --help for more information", 10, 0
@@ -44,7 +66,14 @@ QWORD_SIZE: equ 8
 
 section .bss
 
-
+cat_option:
+  .show_all: resb 1
+  .number_non_blank: resb 1
+  .show_ends: resb 1
+  .number: resb 1
+  .squeeze_blank: resb 1
+  .show_tabs: resb 1
+  .show_non_printing: resb 1
 
 section .text
 
@@ -236,6 +265,48 @@ handle_arg:
   sub rsp, 8
   mov [rbp - 8], rdi ; store %0
   mov rdi, [rbp - 8]
+  mov al, [rdi]
+  cmp al, '-'
+  je .handle_option
+  jmp .exit
+
+.handle_option:
+  mov rdi, [rbp - 8]
+  mov rsi, SHOW_ALL_OPTION
+  call memcmp
+  cmp al, 1
+  je .show_all
+  mov rdi, [rbp - 8]
+  mov rsi, NUMBER_NON_BLANK_OPTION
+  call memcmp
+  cmp al, 1
+  je .number_non_blank
+  mov rdi, [rbp - 8]
+  mov rsi, SHOW_ENDS_OPTION
+  call memcmp
+  cmp al, 1
+  je .show_ends
+  mov rdi, [rbp - 8]
+  mov rsi, NUMBER_OPTION
+  call memcmp
+  cmp al, 1
+  je .number
+  mov rdi, [rbp - 8]
+  mov rsi, SQUEEZE_BLANK_OPTION
+  call memcmp
+  cmp al, 1
+  je .squeeze_blank
+  mov rdi, [rbp - 8]
+  mov rsi, SHOW_TABS_OPTION
+  call memcmp
+  cmp al, 1
+  je .show_tabs
+  mov rdi, [rbp - 8]
+  mov rsi, SHOW_NON_PRINTING_OPTION
+  call memcmp
+  cmp al, 1
+  je .show_non_printing
+  mov rdi, [rbp - 8]
   mov rsi, HELP_OPTION
   call memcmp
   cmp al, 1
@@ -246,6 +317,34 @@ handle_arg:
   cmp al, 1
   je .version
   jmp .invalid
+
+.show_all:
+  mov BYTE [cat_option.show_all], 1
+  jmp .exit
+
+.number_non_blank:
+  mov BYTE [cat_option.number_non_blank], 1
+  jmp .exit
+
+.show_ends:
+  mov BYTE [cat_option.show_ends], 1
+  jmp .exit
+
+.number:
+  mov BYTE [cat_option.number], 1
+  jmp .exit
+
+.squeeze_blank:
+  mov BYTE [cat_option.squeeze_blank], 1
+  jmp .exit
+
+.show_tabs:
+  mov BYTE [cat_option.show_tabs], 1
+  jmp .exit
+
+.show_non_printing:
+  mov BYTE [cat_option.show_non_printing], 1
+  jmp .exit
 
 .help:
   mov rdi, HELP
