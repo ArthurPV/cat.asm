@@ -24,22 +24,27 @@ HELP_LEN: equ $-HELP
 VERSION: db "Version!!", 10, 0
 VERSION_LEN: equ $-VERSION
 
-INVALID_OPTION.1: db "cat: invalid option '", 0
-INVALID_OPTION_LEN.1: equ $-INVALID_OPTION.1
-
-INVALID_OPTION.2: db "'", 10, 0
-INVALID_OPTION_LEN.2: equ $-INVALID_OPTION.2
-
-INVALID_OPTION.3: db "Try 'cat --help' for more information", 10, 0
-INVALID_OPTION_LEN.3: equ $-INVALID_OPTION.3
+INVALID_OPTION: db "cat: invalid option '%'", 10, "Try cat --help for more information", 10, 0
 
 HELP_OPTION: db "--help", 0
 VERSION_OPTION: db "--version", 0
+
+SHOW_ALL_OPTION: db "-A", 0
+NUMBER_NON_BLANK_OPTION: db "-b", 0
+SHOW_ENDS_OPTION: db "-e", 0
+NUMBER_OPTION: db "-n", 0
+SQUEEZE_BLANK_OPTION: db "-s", 0
+SHOW_TABS_OPTION: db "-T", 0
+SHOW_NON_PRINTING_OPTION: db "-v", 0
 
 BYTE_SIZE: equ 1
 WORD_SIZE: equ 2
 DWORD_SIZE: equ 4
 QWORD_SIZE: equ 8
+
+section .bss
+
+
 
 section .text
 
@@ -61,7 +66,7 @@ exit:
   mov [rbp - 16], rdi
   mov [rbp - 8], rsi
   mov rax, SYS_WRITE
-  mov rdi, %1 
+  mov rdi, %1
   mov rsi, [rbp - 16]
   mov rdx, [rbp - 8]
   syscall
@@ -79,6 +84,25 @@ writeout:
 ; %1: length of the buffer
 writeerr:
   write STDERR
+
+%macro writeb 1
+  ccc_begin
+  ; BYTE %0: -1
+  sub rsp, 1
+  mov [rbp - 1], sil
+  lea rdi, [rbp - 1]
+  mov rsi, 1
+  call %1
+  ccc_end
+%endmacro
+
+; writeoutb(BYTE %0) void
+writeoutb:
+  writeb writeout
+
+; writeerrb(BYTE %0) void
+writeerrb:
+  writeb writeerr
 
 ; memcmp(BYTE *%0, BYTE *%1) BYTE
 memcmp:
@@ -142,10 +166,73 @@ memlen:
   mov rax, [rbp - 16]
   ccc_end
 
+%macro writefmt 2
+  ccc_begin
+  ; BYTE *%0 (s): -16
+  ; DWORD %1: -8 - count of args
+  ; QWORD args_counter: -24
+  ; BYTE *%1 (current_arg): -32
+  sub rsp, 32
+  mov [rbp - 16], rdi
+  mov [rbp - 8], rsi
+  mov QWORD [rbp - 24], 0 ; store args_counter
+  mov QWORD [rbp - 32], 0 ; store current_arg
+
+.loop:
+  nop
+
+.next_char:
+  mov rdi, [rbp - 16]
+  mov al, [rdi]
+  test al, al
+  jz .exit
+  cmp al, '%'
+  je .handle_format
+  mov sil, al
+  call %1
+  jmp .continue_loop
+
+.handle_format:
+  mov rax, [rbp - 24]
+  imul rax, QWORD_SIZE
+  mov rax, [rbp + 16 + rax]
+  mov [rbp - 32], rax
+  mov rdi, [rbp - 32]
+  call memlen
+  mov rdi, [rbp - 32]
+  mov rsi, rax
+  call %2
+  inc QWORD [rbp - 24]
+
+.continue_loop:
+  inc QWORD [rbp - 16]
+  jmp .loop
+
+.exit:
+  ccc_end
+%endmacro
+
+; writeoutfmt(BYTE *%0, DWORD %1, ...) void
+;                                 ^^^ push that onto the stack
+;
+; e.g.
+;
+; rdi: "This option is invalid: %"
+; rsi: 1
+; stack:
+;   - "-f"
+writeoutfmt:
+  writefmt writeoutb, writeout
+
+; writeerrfmt(BYTE *%0, DWORD %1, ...) void
+;                                 ^^^ push that onto the stack
+writeerrfmt:
+  writefmt writeerrb, writeerr
+
 ; handle_arg(BYTE* %0) void
 handle_arg:
   ccc_begin
-  ; BYTE *%0: 8
+  ; BYTE *%0: -8
   sub rsp, 8
   mov [rbp - 8], rdi ; store %0
   mov rdi, [rbp - 8]
@@ -175,20 +262,11 @@ handle_arg:
   call exit
 
 .invalid:
-  mov rdi, INVALID_OPTION.1
-  mov rsi, INVALID_OPTION_LEN.1
-  call writeerr
-  mov rdi, [rbp - 8]
-  call memlen
-  mov rdi, [rbp - 8]
-  mov rsi, rax
-  call writeerr
-  mov rdi, INVALID_OPTION.2
-  mov rsi, INVALID_OPTION_LEN.2
-  call writeerr
-  mov rdi, INVALID_OPTION.3
-  mov rsi, INVALID_OPTION_LEN.3
-  call writeerr
+  mov rdi, INVALID_OPTION
+  mov rsi, 1
+  push QWORD [rbp - 8]
+  add rsp, 8
+  call writeerrfmt
   mov rdi, EXIT_ERR
   call exit
 
@@ -229,6 +307,7 @@ handle_input:
   ccc_begin
   ; BYTE buffer[BUFSIZ]: BUFSIZ (8192)
   sub rsp, BUFSIZ
+
 .loop: 
   mov rax, SYS_READ
   mov rdi, STDIN
