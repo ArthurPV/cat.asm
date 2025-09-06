@@ -265,8 +265,8 @@ handle_arg:
   mov rdi, INVALID_OPTION
   mov rsi, 1
   push QWORD [rbp - 8]
-  add rsp, 8
   call writeerrfmt
+  add rsp, 8
   mov rdi, EXIT_ERR
   call exit
 
