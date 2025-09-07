@@ -559,6 +559,32 @@ handle_options:
 .exit:
   ccc_end
 
+; writeout_file_content(BYTE *%0, QWORD %1) void
+writeout_file_content:
+  ccc_begin
+  ; BYTE *%0: -8
+  ; QWORD %1: -16
+  ; QWORD counter: -24
+  sub rsp, 24
+  mov [rbp - 8], rdi ; store %0
+  mov [rbp - 16], rsi ; store %1
+  mov QWORD [rbp - 24], 0 ; store counter
+
+.loop:
+  mov rcx, [rbp - 16]
+  mov rdx, [rbp - 24]
+  cmp rdx, rcx
+  jge .exit
+  mov rdx, [rbp - 8]
+  add rdx, [rbp - 24]
+  mov sil, [rdx]
+  call writeoutb
+  inc QWORD [rbp - 24]
+  jmp .loop
+
+.exit:
+  ccc_end
+
 ; handle_file(BYTE *%0) void
 handle_file:
   ccc_begin
@@ -600,7 +626,7 @@ handle_file:
   je .close
   lea rdi, [rbp - BUFSIZ - 16]
   mov rsi, rax
-  call writeout
+  call writeout_file_content
   jmp .read
 
 .read_error:
