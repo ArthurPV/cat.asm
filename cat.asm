@@ -92,13 +92,10 @@ QWORD_SIZE: equ 8
 section .bss
 
 option:
-  .A: resb 1
   .b: resb 1
-  .e: resb 1
   .E: resb 1
   .n: resb 1
   .s: resb 1
-  .t: resb 1
   .T: resb 1
   .u: resb 1
   .v: resb 1
@@ -306,6 +303,28 @@ option_n:
 .exit:
   ccc_end
 
+; set_A_option() void
+set_A_option:
+  ccc_begin
+  mov BYTE [option.v], 1
+  mov BYTE [option.E], 1
+  mov BYTE [option.T], 1
+  ccc_end
+
+; set_e_option() void
+set_e_option:
+  ccc_begin
+  mov BYTE [option.v], 1
+  mov BYTE [option.E], 1
+  ccc_end
+
+; set_t_option() void
+set_t_option:
+  ccc_begin
+  mov BYTE [option.v], 1
+  mov BYTE [option.T], 1
+  ccc_end
+
 ; handle_long_option(BYTE *%0) void
 handle_long_option:
   ccc_begin
@@ -360,7 +379,7 @@ handle_long_option:
   jmp .unrecognized_option
 
 .A:
-  mov BYTE [option.A], 1
+  call set_A_option
   jmp .exit
 
 .b:
@@ -451,7 +470,7 @@ handle_short_option:
   jmp .invalid
 
 .A:
-  mov BYTE [option.A], 1
+  call set_A_option
   jmp .loop
 
 .b:
@@ -459,7 +478,7 @@ handle_short_option:
   jmp .loop
 
 .e:
-  mov BYTE [option.e], 1
+  call set_e_option
   jmp .loop
 
 .E:
@@ -475,7 +494,7 @@ handle_short_option:
   jmp .loop
 
 .t:
-  mov BYTE [option.t], 1
+  call set_t_option
   jmp .loop
 
 .T:
