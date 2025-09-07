@@ -492,8 +492,8 @@ handle_short_option:
 .exit:
   ccc_end
 
-; handle_arg(BYTE *%0) void
-handle_arg:
+; handle_option(BYTE *%0) void
+handle_option:
   ccc_begin
   ; BYTE *%0: -8
   sub rsp, 8
@@ -519,8 +519,8 @@ handle_arg:
 .exit:
   ccc_end
 
-; handle_args(DWORD %0, BYTE **%1) void
-handle_args:
+; handle_options(DWORD %0, BYTE **%1) void
+handle_options:
   ccc_begin
   ; DWORD %0 (argc): 16
   ; BYTE **%1 (argv): 8
@@ -542,7 +542,7 @@ handle_args:
   mov eax, [rbp - 16]
   add rdi, rax
   mov rdi, [rdi]
-  call handle_arg
+  call handle_option
   jmp .loop
   
 .exit:
@@ -631,7 +631,7 @@ main:
 .handle_args:
   mov edi, [rbp - 16]
   mov rsi, [rbp - 8]
-  call handle_args
+  call handle_options
   mov edi, [rbp - 16]
   mov rsi, [rbp - 8]
   call handle_files
