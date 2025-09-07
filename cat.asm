@@ -46,18 +46,32 @@ HELP_LEN: equ $-HELP
 VERSION: db "cat (Linux x86_64 ASM clone) 0.0", 10, 0
 VERSION_LEN: equ $-VERSION
 
-INVALID_OPTION: db "cat: invalid option '%'", 10, "Try cat --help for more information", 10, 0
+INVALID_OPTION: db "cat: invalid option -- '%'", 10, "Try cat --help for more information", 10, 0
 
-HELP_OPTION: db "--help", 0
-VERSION_OPTION: db "--version", 0
+UNRECOGNIZED_OPTION: db "cat: unrecognized option '%'", 10, "Try 'cat --help' for more information.", 10, 0
 
-SHOW_ALL_OPTION: db "-A", 0
-NUMBER_NON_BLANK_OPTION: db "-b", 0
-SHOW_ENDS_OPTION: db "-e", 0
-NUMBER_OPTION: db "-n", 0
-SQUEEZE_BLANK_OPTION: db "-s", 0
-SHOW_TABS_OPTION: db "-T", 0
-SHOW_NON_PRINTING_OPTION: db "-v", 0
+OPTION_LONG:
+  .SHOW_ALL: db "--show-all", 0
+  .NUMBER_NON_BLANK: db "--number-nonblank", 0
+  .SHOW_ENDS: db "--show-ends", 0
+  .NUMBER: db "--number", 0
+  .SQUEEZE_BLANK: db "--squeeze-blank", 0
+  .SHOW_TABS: db "--show-tabs", 0
+  .SHOW_NONPRINTING: db "--show-nonprinting", 0
+  .HELP: db "--help", 0
+  .VERSION: db "--version", 0
+
+OPTION_SHORT:
+  .A: equ 'A'
+  .b: equ 'b'
+  .e: equ 'e'
+  .E: equ 'E'
+  .n: equ 'n'
+  .s: equ 's'
+  .t: equ 't'
+  .T: equ 'T'
+  .u: equ 'u'
+  .v: equ 'v'
 
 BYTE_SIZE: equ 1
 WORD_SIZE: equ 2
@@ -66,14 +80,17 @@ QWORD_SIZE: equ 8
 
 section .bss
 
-cat_option:
-  .show_all: resb 1
-  .number_non_blank: resb 1
-  .show_ends: resb 1
-  .number: resb 1
-  .squeeze_blank: resb 1
-  .show_tabs: resb 1
-  .show_non_printing: resb 1
+option:
+  .A: resb 1
+  .b: resb 1
+  .e: resb 1
+  .E: resb 1
+  .n: resb 1
+  .s: resb 1
+  .t: resb 1
+  .T: resb 1
+  .u: resb 1
+  .v: resb 1
 
 section .text
 
@@ -258,92 +275,104 @@ writeoutfmt:
 writeerrfmt:
   writefmt writeerrb, writeerr
 
-; handle_arg(BYTE* %0) void
-handle_arg:
+; option_n(BYTE* %0) DWORD
+option_n:
+  ccc_begin
+  mov al, [rdi]
+  cmp al, '-'
+  jne .exit
+  inc rdi
+  mov al, [rdi]
+  cmp al, '-'
+  je .two
+  mov eax, 1
+  jmp .exit
+
+.two:
+  mov eax, 2
+
+.exit:
+  ccc_end
+
+; handle_long_option(BYTE *%0) void
+handle_long_option:
   ccc_begin
   ; BYTE *%0: -8
   sub rsp, 8
   mov [rbp - 8], rdi ; store %0
   mov rdi, [rbp - 8]
-  mov al, [rdi]
-  cmp al, '-'
-  je .handle_option
-  jmp .exit
-
-.handle_option:
-  mov rdi, [rbp - 8]
-  mov rsi, SHOW_ALL_OPTION
+  mov rsi, OPTION_LONG.SHOW_ALL
   call memcmp
   cmp al, 1
-  je .show_all
+  je .A
   mov rdi, [rbp - 8]
-  mov rsi, NUMBER_NON_BLANK_OPTION
+  mov rsi, OPTION_LONG.NUMBER_NON_BLANK
   call memcmp
   cmp al, 1
-  je .number_non_blank
+  je .b
   mov rdi, [rbp - 8]
-  mov rsi, SHOW_ENDS_OPTION
+  mov rsi, OPTION_LONG.SHOW_ENDS
   call memcmp
   cmp al, 1
-  je .show_ends
+  je .E
   mov rdi, [rbp - 8]
-  mov rsi, NUMBER_OPTION
+  mov rsi, OPTION_LONG.NUMBER
   call memcmp
   cmp al, 1
-  je .number
+  je .n
   mov rdi, [rbp - 8]
-  mov rsi, SQUEEZE_BLANK_OPTION
+  mov rsi, OPTION_LONG.SQUEEZE_BLANK
   call memcmp
   cmp al, 1
-  je .squeeze_blank
+  je .s
   mov rdi, [rbp - 8]
-  mov rsi, SHOW_TABS_OPTION
+  mov rsi, OPTION_LONG.SHOW_TABS
   call memcmp
   cmp al, 1
-  je .show_tabs
+  je .T
   mov rdi, [rbp - 8]
-  mov rsi, SHOW_NON_PRINTING_OPTION
+  mov rsi, OPTION_LONG.SHOW_NONPRINTING
   call memcmp
   cmp al, 1
-  je .show_non_printing
+  je .v
   mov rdi, [rbp - 8]
-  mov rsi, HELP_OPTION
+  mov rsi, OPTION_LONG.HELP
   call memcmp
   cmp al, 1
   je .help
   mov rdi, [rbp - 8]
-  mov rsi, VERSION_OPTION
+  mov rsi, OPTION_LONG.VERSION
   call memcmp
   cmp al, 1
   je .version
-  jmp .invalid
+  jmp .unrecognized_option
 
-.show_all:
-  mov BYTE [cat_option.show_all], 1
+.A:
+  mov BYTE [option.A], 1
   jmp .exit
 
-.number_non_blank:
-  mov BYTE [cat_option.number_non_blank], 1
+.b:
+  mov BYTE [option.b], 1
   jmp .exit
 
-.show_ends:
-  mov BYTE [cat_option.show_ends], 1
+.E:
+  mov BYTE [option.E], 1
   jmp .exit
 
-.number:
-  mov BYTE [cat_option.number], 1
+.n:
+  mov BYTE [option.n], 1
   jmp .exit
 
-.squeeze_blank:
-  mov BYTE [cat_option.squeeze_blank], 1
+.s:
+  mov BYTE [option.s], 1
   jmp .exit
 
-.show_tabs:
-  mov BYTE [cat_option.show_tabs], 1
+.T:
+  mov BYTE [option.T], 1
   jmp .exit
 
-.show_non_printing:
-  mov BYTE [cat_option.show_non_printing], 1
+.v:
+  mov BYTE [option.v], 1
   jmp .exit
 
 .help:
@@ -360,14 +389,128 @@ handle_arg:
   mov rdi, EXIT_OK
   call exit
 
-.invalid:
-  mov rdi, INVALID_OPTION
+.unrecognized_option:
+  mov rdi, UNRECOGNIZED_OPTION
   mov rsi, 1
   push QWORD [rbp - 8]
   call writeerrfmt
   add rsp, 8
   mov rdi, EXIT_ERR
   call exit
+
+.exit:
+  ccc_end
+
+; handle_short_option(BYTE *%0) void
+handle_short_option:
+  ccc_begin
+  ; BYTE *%0: -8
+  ; BYTE current: -16
+  sub rsp, 16
+  mov [rbp - 8], rdi ; store %0
+
+.loop:
+  inc QWORD [rbp - 8]
+  mov rdi, [rbp - 8]
+  mov al, [rdi]
+  mov BYTE [rbp - 16], al
+  cmp al, 0
+  je .exit
+  cmp al, OPTION_SHORT.A
+  je .A
+  cmp al, OPTION_SHORT.b
+  je .b
+  cmp al, OPTION_SHORT.e
+  je .e
+  cmp al, OPTION_SHORT.E
+  je .E
+  cmp al, OPTION_SHORT.n
+  je .n
+  cmp al, OPTION_SHORT.s
+  je .s
+  cmp al, OPTION_SHORT.t
+  je .t
+  cmp al, OPTION_SHORT.T
+  je .T
+  cmp al, OPTION_SHORT.u
+  je .u
+  cmp al, OPTION_SHORT.v
+  je .v
+  jmp .invalid
+
+.A:
+  mov BYTE [option.A], 1
+  jmp .loop
+
+.b:
+  mov BYTE [option.b], 1
+  jmp .loop
+
+.e:
+  mov BYTE [option.e], 1
+  jmp .loop
+
+.E:
+  mov BYTE [option.E], 1
+  jmp .loop
+
+.n:
+  mov BYTE [option.n], 1
+  jmp .loop
+
+.s:
+  mov BYTE [option.s], 1
+  jmp .loop
+
+.t:
+  mov BYTE [option.t], 1
+  jmp .loop
+
+.T:
+  mov BYTE [option.T], 1
+  jmp .loop
+
+.u:
+  mov BYTE [option.u], 1
+  jmp .loop
+
+.v:
+  mov BYTE [option.v], 1
+  jmp .loop
+
+.invalid:
+  mov rdi, INVALID_OPTION
+  mov rsi, 1
+  lea rdx, [rbp - 16]
+  push QWORD rdx
+  call writeerrfmt
+  add rsp, 8
+  mov rdi, EXIT_ERR
+  call exit
+
+.exit:
+  ccc_end
+
+; handle_arg(BYTE* %0) void
+handle_arg:
+  ccc_begin
+  ; BYTE *%0: -8
+  sub rsp, 8
+  mov [rbp - 8], rdi ; store %0
+  mov rdi, [rbp - 8]
+  call option_n
+  cmp eax, 1
+  je .handle_short_option
+
+.handle_long_option:
+  mov rdi, [rbp - 8]
+  call handle_long_option
+  jmp .exit
+
+.handle_short_option:
+  mov rdi, [rbp - 8]
+  call handle_short_option
+  jmp .exit
 
 .exit:
   ccc_end
@@ -385,7 +528,7 @@ handle_args:
   mov [rbp - 8], rsi ; store %1
  
 .loop:
-  cmp DWORD [rbp - 16], 0
+  cmp DWORD [rbp - 16], 8 ; we skip the first arg
   jg .body
   jmp .exit
 
