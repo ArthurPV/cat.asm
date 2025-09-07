@@ -492,7 +492,7 @@ handle_short_option:
 .exit:
   ccc_end
 
-; handle_arg(BYTE* %0) void
+; handle_arg(BYTE *%0) void
 handle_arg:
   ccc_begin
   ; BYTE *%0: -8
@@ -548,6 +548,50 @@ handle_args:
 .exit:
   ccc_end
 
+; handle_file(BYTE *%0) void
+handle_file:
+  ccc_begin
+  ; BYTE *%0
+  sub rsp, 8
+  mov [rbp - 8], rdi ; store %0
+  mov rdi, [rbp - 8]
+  call option_n
+  cmp eax, 0
+  jne .exit
+  ; TODO: open and write file content on STDOUT
+
+.exit:
+  ccc_end
+
+; handle_files(DWORD %0, BYTE **%1) void
+handle_files:
+  ccc_begin
+  ; DWORD %0 (argc): 16
+  ; BYTE **%1 (argv): 8
+  sub rsp, 16
+  mov edx, edi
+  mov eax, QWORD_SIZE
+  imul edx
+  mov [rbp - 16], eax ; store %0 * QWORD_SIZE
+  mov [rbp - 8], rsi ; store %1
+
+.loop:
+  cmp DWORD [rbp - 16], 8 ; we skip the first arg
+  jg .body
+  jmp .exit
+
+.body:
+  sub DWORD [rbp - 16], QWORD_SIZE
+  mov rdi, [rbp - 8]
+  mov eax, [rbp - 16]
+  add rdi, rax
+  mov rdi, [rdi]
+  call handle_file
+  jmp .loop
+
+.exit:
+  ccc_end
+
 ; handle_input() void
 handle_input:
   ccc_begin
@@ -588,6 +632,9 @@ main:
   mov edi, [rbp - 16]
   mov rsi, [rbp - 8]
   call handle_args
+  mov edi, [rbp - 16]
+  mov rsi, [rbp - 8]
+  call handle_files
   jmp .exit
 
 .handle_input:
