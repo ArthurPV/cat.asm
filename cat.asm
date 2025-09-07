@@ -59,6 +59,7 @@ INVALID_OPTION: db "cat: invalid option -- '%'", 10, "Try cat --help for more in
 UNRECOGNIZED_OPTION: db "cat: unrecognized option '%'", 10, "Try 'cat --help' for more information.", 10, 0
 
 FAILED_TO_OPEN_FILE: db "cat: %: Failed to open file", 10, 0
+FAILED_TO_READ_FILE: db "cat: %: Failed to read file", 10, 0
 
 OPTION_LONG:
   .SHOW_ALL: db "--show-all", 0
@@ -561,8 +562,10 @@ handle_options:
 ; handle_file(BYTE *%0) void
 handle_file:
   ccc_begin
-  ; BYTE *%0
-  sub rsp, 8
+  ; BYTE *%0: -8
+  ; DWORD fd: -16
+  ; BYTE *buffer: -BUFSIZ - 16
+  sub rsp, 16 + BUFSIZ
   mov [rbp - 8], rdi ; store %0
   mov rdi, [rbp - 8]
   call option_n
@@ -574,18 +577,43 @@ handle_file:
   mov edx, S_IRWXU
   syscall
   cmp rax, 0 ; check for error
-  jl .error
-  mov rax, SYS_CLOSE
-  mov rdi, rax
-  syscall
-  jmp .exit
+  jl .open_error
+  mov DWORD [rbp - 16], eax
+  jmp .read
 
-.error:
+.open_error:
   mov rdi, FAILED_TO_OPEN_FILE
   mov rsi, 1
   push QWORD [rbp - 8]
   call writeerrfmt
   add rsp, QWORD_SIZE * 1
+  jmp .exit
+
+.read:
+  mov rdi, [rbp - 16]
+  mov rax, SYS_READ
+  lea rsi, [rbp - BUFSIZ - 16]
+  mov rdx, BUFSIZ
+  syscall
+  cmp rax, 0
+  jl .read_error
+  je .close
+  lea rdi, [rbp - BUFSIZ - 16]
+  mov rsi, rax
+  call writeout
+  jmp .read
+
+.read_error:
+  mov rdi, FAILED_TO_READ_FILE
+  mov rsi, 1
+  push QWORD [rbp - 8]
+  call writeerrfmt
+  add rsp, QWORD_SIZE * 1
+
+.close:
+  mov rax, SYS_CLOSE
+  mov rdi, [rbp - 16]
+  syscall
 
 .exit:
   ccc_end
