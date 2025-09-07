@@ -532,8 +532,8 @@ handle_option:
 ; handle_options(DWORD %0, BYTE **%1) void
 handle_options:
   ccc_begin
-  ; DWORD %0 (argc): 16
-  ; BYTE **%1 (argv): 8
+  ; DWORD %0 (argc): -16
+  ; BYTE **%1 (argv): -8
   sub rsp, 16
   mov edx, edi
   mov eax, QWORD_SIZE
@@ -593,27 +593,31 @@ handle_file:
 ; handle_files(DWORD %0, BYTE **%1) void
 handle_files:
   ccc_begin
-  ; DWORD %0 (argc): 16
-  ; BYTE **%1 (argv): 8
-  sub rsp, 16
+  ; DWORD %0 (argc): -16
+  ; BYTE **%1 (argv): -8
+  ; DWORD counter: -24
+  sub rsp, 24
   mov edx, edi
   mov eax, QWORD_SIZE
   imul edx
   mov [rbp - 16], eax ; store %0 * QWORD_SIZE
   mov [rbp - 8], rsi ; store %1
+  mov DWORD [rbp - 24], QWORD_SIZE ; store counter
 
 .loop:
-  cmp DWORD [rbp - 16], 8 ; we skip the first arg
-  jg .body
+  mov edi, [rbp - 16]
+  mov esi, [rbp - 24]
+  cmp esi, edi
+  jl .body
   jmp .exit
 
 .body:
-  sub DWORD [rbp - 16], QWORD_SIZE
   mov rdi, [rbp - 8]
-  mov eax, [rbp - 16]
+  mov eax, [rbp - 24]
   add rdi, rax
   mov rdi, [rdi]
   call handle_file
+  add DWORD [rbp - 24], QWORD_SIZE
   jmp .loop
 
 .exit:
