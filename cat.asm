@@ -7,7 +7,15 @@ section .data
 SYS_READ: equ 0
 SYS_WRITE: equ 1
 SYS_OPEN: equ 2
+SYS_CLOSE: equ 3
 SYS_EXIT: equ 60
+
+O_RDONLY: equ 0x0000000
+
+S_IRUSR: equ 1 << 8 ; R for owner
+S_IWUSR: equ 1 << 7 ; W for owner
+S_IXUSR: equ 1 << 6 ; X for owner
+S_IRWXU: equ S_IRUSR | S_IWUSR | S_IXUSR ; RWX mask for owner
 
 EXIT_OK: equ 0
 EXIT_ERR: equ 1
@@ -49,6 +57,8 @@ VERSION_LEN: equ $-VERSION
 INVALID_OPTION: db "cat: invalid option -- '%'", 10, "Try cat --help for more information", 10, 0
 
 UNRECOGNIZED_OPTION: db "cat: unrecognized option '%'", 10, "Try 'cat --help' for more information.", 10, 0
+
+FAILED_TO_OPEN_FILE: db "cat: %: Failed to open file", 10, 0
 
 OPTION_LONG:
   .SHOW_ALL: db "--show-all", 0
@@ -279,12 +289,12 @@ writeerrfmt:
 option_n:
   ccc_begin
   mov eax, 0
-  mov al, [rdi]
-  cmp al, '-'
+  mov dh, [rdi]
+  cmp dh, '-'
   jne .exit
   inc rdi
-  mov al, [rdi]
-  cmp al, '-'
+  mov dh, [rdi]
+  cmp dh, '-'
   je .two
   mov eax, 1
   jmp .exit
@@ -395,7 +405,7 @@ handle_long_option:
   mov rsi, 1
   push QWORD [rbp - 8]
   call writeerrfmt
-  add rsp, 8
+  add rsp, QWORD_SIZE * 1
   mov rdi, EXIT_ERR
   call exit
 
@@ -485,7 +495,7 @@ handle_short_option:
   lea rdx, [rbp - 16]
   push QWORD rdx
   call writeerrfmt
-  add rsp, 8
+  add rsp, QWORD_SIZE * 1
   mov rdi, EXIT_ERR
   call exit
 
@@ -558,7 +568,24 @@ handle_file:
   call option_n
   cmp eax, 0
   jne .exit
-  ; TODO: open and write file content on STDOUT
+  mov rax, SYS_OPEN
+  mov rdi, [rbp - 8]
+  mov esi, O_RDONLY
+  mov edx, S_IRWXU
+  syscall
+  cmp rax, 0 ; check for error
+  jl .error
+  mov rax, SYS_CLOSE
+  mov rdi, rax
+  syscall
+  jmp .exit
+
+.error:
+  mov rdi, FAILED_TO_OPEN_FILE
+  mov rsi, 1
+  push QWORD [rbp - 8]
+  call writeerrfmt
+  add rsp, QWORD_SIZE * 1
 
 .exit:
   ccc_end
