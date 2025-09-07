@@ -278,6 +278,7 @@ writeerrfmt:
 ; option_n(BYTE* %0) DWORD
 option_n:
   ccc_begin
+  mov eax, 0
   mov al, [rdi]
   cmp al, '-'
   jne .exit
@@ -501,6 +502,9 @@ handle_arg:
   call option_n
   cmp eax, 1
   je .handle_short_option
+  cmp eax, 2
+  je .handle_long_option
+  jmp .exit
 
 .handle_long_option:
   mov rdi, [rbp - 8]
