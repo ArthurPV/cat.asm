@@ -102,7 +102,9 @@ option:
   .u: resb 1
   .v: resb 1
 
-; Add a comment here.
+; Check if the handle_input function can be called.
+; This prevents the user from using the dash option multiple times
+; and entering input loops multiple times on the same file being read.
 can_handle_input: resb 1
 line_count: resq 1
 
