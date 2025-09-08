@@ -61,6 +61,8 @@ UNRECOGNIZED_OPTION: db "cat: unrecognized option '%'", 10, "Try 'cat --help' fo
 FAILED_TO_OPEN_FILE: db "cat: %: Failed to open file", 10, 0
 FAILED_TO_READ_FILE: db "cat: %: Failed to read file", 10, 0
 
+DASH: db '-', 0
+
 OPTION_LONG:
   .SHOW_ALL: db "--show-all", 0
   .NUMBER_NON_BLANK: db "--number-nonblank", 0
@@ -99,6 +101,10 @@ option:
   .T: resb 1
   .u: resb 1
   .v: resb 1
+
+; Add a comment here.
+can_handle_input: resb 1
+line_count: resq 1
 
 section .text
 
@@ -615,7 +621,7 @@ handle_file:
   mov rdi, [rbp - 8]
   call option_n
   cmp eax, 0
-  jne .exit
+  jne .handle_input
   mov rax, SYS_OPEN
   mov rdi, [rbp - 8]
   mov esi, O_RDONLY
@@ -624,6 +630,7 @@ handle_file:
   cmp rax, 0 ; check for error
   jl .open_error
   mov DWORD [rbp - 16], eax
+  mov BYTE [can_handle_input], 1
   jmp .read
 
 .open_error:
@@ -659,6 +666,18 @@ handle_file:
   mov rax, SYS_CLOSE
   mov rdi, [rbp - 16]
   syscall
+  jmp .exit
+
+.handle_input:
+  test BYTE [can_handle_input], 1
+  jz .exit
+  mov rdi, [rbp - 8]
+  mov rsi, DASH
+  call memcmp
+  test al, 1
+  jz .exit
+  mov BYTE [can_handle_input], 0
+  call handle_input
 
 .exit:
   ccc_end
