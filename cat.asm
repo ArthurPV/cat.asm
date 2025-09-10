@@ -86,10 +86,21 @@ OPTION_SHORT:
   .u: equ 'u'
   .v: equ 'v'
 
+TAB_SUBSTITUTION: db "^I", 0
+TAB_SUBSTITUTION_LEN: equ $-TAB_SUBSTITUTION
+
+LINE_COUNT:
+  .SPACE: db ""
+
 BYTE_SIZE: equ 1
 WORD_SIZE: equ 2
 DWORD_SIZE: equ 4
 QWORD_SIZE: equ 8
+
+BREAK_BY_EOF: equ 1
+BREAK_BY_LF: equ 2
+BREAK_BY_HT: equ 3
+BREAK_BY_NON_PRINTING: equ 4
 
 section .bss
 
@@ -106,7 +117,10 @@ option:
 ; This prevents the user from using the dash option multiple times
 ; and entering input loops multiple times on the same file being read.
 can_handle_input: resb 1
+
 line_count: resq 1
+
+break_by: resb 1
 
 section .text
 
@@ -586,27 +600,208 @@ handle_options:
 .exit:
   ccc_end
 
+; write_line_number(QWORD %0) void
+write_line_number:
+  ccc_begin
+  ; QWORD %0: -80
+  ; QWORD digits_count: -72
+  ; BYTE digits[64]: -64
+  sub rsp, 80
+  mov [rbp - 80], rdi ; store %0
+  mov QWORD [rbp - 72], 0 ; store digits_count = 0
+
+_handle_negative:
+  cmp QWORD [rbp - 80], 0
+  jl .body
+  jmp _convert_int_to_string
+
+.body:
+  mov sil, '-'
+  call writeoutb
+  neg QWORD [rbp - 80] ; store %0 = -%0
+
+_convert_int_to_string:
+  ; NOTE: We need to jump on body, in case of %0 is equal to 0
+  jmp .body
+
+.loop:
+  cmp QWORD [rbp - 80], 0
+  jg .body
+  jmp .exit
+
+.body:
+  mov rax, [rbp - 80]
+  cqo
+  mov rbx, 10
+  idiv rbx
+  mov [rbp - 80], rax ; %0 = quotient
+  add rdx, '0' ; reminder += '0'
+  lea rcx, [rbp - 64]
+  add rcx, [rbp - 72]
+  mov [rcx], rdx
+  inc QWORD [rbp - 72]
+  jmp .loop
+
+.exit:
+  nop
+
+_write_int:
+  nop
+
+.loop:
+  cmp QWORD [rbp - 72], 0
+  jg .body
+  jmp .exit
+
+.body:
+  mov rdx, [rbp - 72]
+  dec rdx
+  lea rdi, [rbp - 64]
+  add rdi, rdx
+  mov rsi, 1
+  call writeout
+  dec QWORD [rbp - 72]
+  jmp .loop
+
+.exit:
+  ccc_end
+
+; file_content_iter(BYTE *%0, QWORD %1) BYTE*
+file_content_iter:
+  ccc_begin
+  ; BYTE *%0: -16
+  ; QWORD %1: -8
+  ; QWORD count: -24
+  sub rsp, 24
+  mov [rbp - 16], rdi
+  mov [rbp - 8], rsi
+  mov QWORD [rbp - 24], 1
+
+.loop:
+  mov rdi, [rbp - 8]
+  cmp [rbp - 24], rdi
+  jge .eof
+  mov rdi, [rbp - 16]
+  add rdi, [rbp - 24]
+  mov al, [rdi]
+  cmp al, 10
+  je .lf
+  cmp al, 9
+  je .ht
+
+.continue:
+  inc QWORD [rbp - 24]
+  jmp .loop
+
+.eof:
+  mov BYTE [break_by], BREAK_BY_EOF
+  dec QWORD [rbp - 24]
+  jmp .exit
+
+.lf:
+  mov BYTE [break_by], BREAK_BY_LF
+  inc QWORD [rbp - 24]
+  jmp .exit
+
+.ht:
+  test BYTE [option.T], 1
+  jz .continue
+  mov BYTE [break_by], BREAK_BY_HT
+  inc QWORD [rbp - 24]
+  jmp .exit
+
+.non_printing:
+  test BYTE [option.v], 1
+  jz .continue
+  mov BYTE [break_by], BREAK_BY_NON_PRINTING
+
+.exit:
+  mov rax, [rbp - 16]
+  add rax, [rbp - 24]
+  ccc_end
+
+; write_line_count() void
+write_line_count:
+  ccc_begin
+  test BYTE [option.n], 1
+  jz .exit
+  mov rdi, [line_count]
+  call write_line_number
+
+.exit:
+  ccc_end
+
 ; writeout_file_content(BYTE *%0, QWORD %1) void
 writeout_file_content:
   ccc_begin
-  ; BYTE *%0: -8
-  ; QWORD %1: -16
-  ; QWORD counter: -24
-  sub rsp, 24
-  mov [rbp - 8], rdi ; store %0
-  mov [rbp - 16], rsi ; store %1
-  mov QWORD [rbp - 24], 0 ; store counter
+  ; BYTE *%0: -16
+  ; QWORD %1: -8
+  sub rsp, 16
+  mov [rbp - 16], rdi ; store %0
+  mov [rbp - 8], rsi ; store %1
+  call write_line_count
 
 .loop:
-  mov rcx, [rbp - 16]
-  mov rdx, [rbp - 24]
-  cmp rdx, rcx
-  jge .exit
-  mov rdx, [rbp - 8]
-  add rdx, [rbp - 24]
-  mov sil, [rdx]
+  mov rdi, [rbp - 16]
+  mov rsi, [rbp - 8]
+  call file_content_iter
+  mov rcx, rax
+  sub rcx, [rbp - 16]
+  cmp rcx, 0
+  je .exit 
+  push rax
+  push rcx
+
+.continue:
+  cmp BYTE [break_by], BREAK_BY_EOF
+  je .eof
+  cmp BYTE [break_by], BREAK_BY_LF
+  je .lf
+  cmp BYTE [break_by], BREAK_BY_HT
+  je .ht
+  cmp BYTE [break_by], BREAK_BY_NON_PRINTING
+  je .non_printing
+  jmp .line
+
+.eof:
+  jmp .exit
+
+.lf:
+  inc QWORD [rbp - 16]
+  dec QWORD [rbp - 8]
+  mov sil, 10
   call writeoutb
-  inc QWORD [rbp - 24]
+  inc QWORD [line_count]
+  cmp QWORD [rbp - 8], 0
+  jg .line_count
+  jmp .loop
+
+.line_count:
+  call write_line_count
+  jmp .loop
+
+.ht:
+  inc QWORD [rbp - 16]
+  dec QWORD [rbp - 8]
+  mov rdi, TAB_SUBSTITUTION
+  mov rsi, TAB_SUBSTITUTION_LEN
+  call writeout
+  jmp .loop
+
+.non_printing:
+  inc QWORD [rbp - 16]
+  dec QWORD [rbp - 8]
+  ; TODO: Write something here.
+  jmp .loop
+
+.line:
+  pop rcx
+  pop rax
+  mov [rbp - 16], rax
+  sub [rbp - 8], rcx
+  mov rdi, rax
+  mov rsi, rcx
+  call writeout
   jmp .loop
 
 .exit:
@@ -751,6 +946,7 @@ main:
   mov [rbp - 16], edi ; store %0
   mov [rbp - 8], rsi ; store %1
   cmp DWORD [rbp - 16], 1
+  mov QWORD [line_count], 1 ; store line_count=1
   jle .handle_input
 
 .handle_args:
