@@ -86,11 +86,23 @@ OPTION_SHORT:
   .u: equ 'u'
   .v: equ 'v'
 
-TAB_SUBSTITUTION: db "^I", 0
+TAB_SUBSTITUTION: db "^I"
 TAB_SUBSTITUTION_LEN: equ $-TAB_SUBSTITUTION
 
-LINE_COUNT:
-  .SPACE: db ""
+LINE_NUMBER_SPACES_5: db "     "
+LINE_NUMBER_SPACES_LEN_5: equ $-LINE_NUMBER_SPACES_5
+
+LINE_NUMBER_SPACES_4: db "    "
+LINE_NUMBER_SPACES_LEN_4: equ $-LINE_NUMBER_SPACES_4
+
+LINE_NUMBER_SPACES_3: db "   "
+LINE_NUMBER_SPACES_LEN_3: equ $-LINE_NUMBER_SPACES_3
+
+LINE_NUMBER_SPACES_2: db "  "
+LINE_NUMBER_SPACES_LEN_2: equ $-LINE_NUMBER_SPACES_2
+
+LINE_NUMBER_SPACES_1: db " "
+LINE_NUMBER_SPACES_LEN_1: equ $-LINE_NUMBER_SPACES_1
 
 BYTE_SIZE: equ 1
 WORD_SIZE: equ 2
@@ -645,13 +657,55 @@ _convert_int_to_string:
 .exit:
   nop
 
+_write_left_spaces:
+  cmp QWORD [rbp - 72], 1
+  je .write_5
+  cmp QWORD [rbp - 72], 2
+  je .write_4
+  cmp QWORD [rbp - 72], 3
+  je .write_3
+  cmp QWORD [rbp - 72], 4
+  je .write_2
+  cmp QWORD [rbp - 72], 5
+  je .write_1
+  jmp _write_int
+
+.write_5:
+  mov rdi, LINE_NUMBER_SPACES_5
+  mov rsi, LINE_NUMBER_SPACES_LEN_5
+  call writeout
+  jmp _write_int
+
+.write_4:
+  mov rdi, LINE_NUMBER_SPACES_4
+  mov rsi, LINE_NUMBER_SPACES_LEN_4
+  call writeout
+  jmp _write_int
+
+.write_3:
+  mov rdi, LINE_NUMBER_SPACES_3
+  mov rsi, LINE_NUMBER_SPACES_LEN_3
+  call writeout
+  jmp _write_int
+
+.write_2:
+  mov rdi, LINE_NUMBER_SPACES_2
+  mov rsi, LINE_NUMBER_SPACES_LEN_2
+  call writeout
+  jmp _write_int
+
+.write_1:
+  mov rdi, LINE_NUMBER_SPACES_1
+  mov rsi, LINE_NUMBER_SPACES_LEN_1
+  call writeout
+
 _write_int:
   nop
 
 .loop:
   cmp QWORD [rbp - 72], 0
   jg .body
-  jmp .exit
+  jmp _write_right_spaces
 
 .body:
   mov rdx, [rbp - 72]
@@ -662,6 +716,19 @@ _write_int:
   call writeout
   dec QWORD [rbp - 72]
   jmp .loop
+
+_write_right_spaces:
+  cmp QWORD [rbp - 80], 1000000
+  jl .write_two_spaces
+  mov rdi, LINE_NUMBER_SPACES_1
+  mov rsi, LINE_NUMBER_SPACES_LEN_1
+  call writeout
+  jmp .exit
+
+.write_two_spaces:
+  mov rdi, LINE_NUMBER_SPACES_2
+  mov rsi, LINE_NUMBER_SPACES_LEN_2
+  call writeout
 
 .exit:
   ccc_end
