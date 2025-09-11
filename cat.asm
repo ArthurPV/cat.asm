@@ -799,7 +799,7 @@ writeout_file_content:
   jmp .write_line
 
 .ht:
-  ; dec QWORD [rbp - 32] ; avoid to write tab
+  dec QWORD [rbp - 32] ; avoid to write tab
   jmp .write_line
 
 .write_line:
@@ -838,56 +838,6 @@ writeout_file_content:
 
 .exit:
   ccc_end
-
-;  cmp BYTE [break_by], BREAK_BY_HT
-;  je .ht
-;  cmp BYTE [break_by], BREAK_BY_NON_PRINTING
-;  je .non_printing
-;  jmp .line
-;
-;.eof:
-;  jmp .exit
-;
-;.lf:
-;  inc QWORD [rbp - 16]
-;  dec QWORD [rbp - 8]
-;  mov sil, 10
-;  call writeoutb
-;  inc QWORD [line_count]
-;  cmp QWORD [rbp - 8], 0
-;  jg .line_count
-;  jmp .loop
-;
-;.line_count:
-;  call write_line_count
-;  jmp .line
-;
-;.ht:
-;  inc QWORD [rbp - 16]
-;  dec QWORD [rbp - 8]
-;  mov rdi, TAB_SUBSTITUTION
-;  mov rsi, TAB_SUBSTITUTION_LEN
-;  call writeout
-;  jmp .loop
-;
-;.non_printing:
-;  inc QWORD [rbp - 16]
-;  dec QWORD [rbp - 8]
-;  ; TODO: Write something here.
-;  jmp .loop
-;
-;.line:
-;  mov rax, [rbp - 24]
-;  mov rdx, [rbp - 32]
-;  mov [rbp - 16], rax 
-;  sub [rbp - 8], rdx
-;  mov rdi, rax
-;  mov rsi, rcx
-;  call writeout
-;  jmp .loop
-;
-;.exit:
-;  ccc_end
 
 ; handle_file(BYTE *%0) void
 handle_file:
