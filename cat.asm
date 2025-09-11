@@ -131,6 +131,7 @@ option:
 can_handle_input: resb 1
 
 line_count: resq 1
+empty_line_count: resq 1
 
 break_by: resb 1
 
@@ -826,6 +827,44 @@ write_show_tabs:
 .exit:
   ccc_end
 
+; write_lf(QWORD %0, QWORD %1) void
+write_lf:
+  ccc_begin
+  ; QWORD %0 (buffer_len): -8
+  ; QWORD %1 (current_buffer_len): -16
+  sub rsp, 16
+  mov [rbp - 8], rdi ; store %0
+  mov [rbp - 16], rsi ; store %1
+  cmp QWORD [rbp - 16], 0
+  je .empty_line
+  jmp .non_empty_line
+
+.empty_line:
+  inc QWORD [empty_line_count]
+  jmp .continue
+
+.non_empty_line:
+  mov QWORD [empty_line_count], 0
+
+.continue:
+  test BYTE [option.s], 1
+  jz .write
+  cmp QWORD [empty_line_count], 1
+  jle .write
+  jmp .exit
+
+.write:
+  call write_show_ends
+  mov sil, 10
+  call writeoutb
+  inc QWORD [line_count]
+  cmp QWORD [rbp - 8], 0
+  jle .exit
+  call write_line_count
+
+.exit:
+  ccc_end
+
 ; writeout_file_content(BYTE *%0, QWORD %1) void
 writeout_file_content:
   ccc_begin
@@ -887,13 +926,9 @@ writeout_file_content:
   jmp .exit
 
 .write_lf:
-  call write_show_ends
-  mov sil, 10
-  call writeoutb
-  inc QWORD [line_count]
-  cmp QWORD [rbp - 8], 0
-  jle .exit
-  call write_line_count
+  mov rdi, [rbp - 8]
+  mov rsi, [rbp - 32]
+  call write_lf
   jmp .loop
 
 .write_ht:
