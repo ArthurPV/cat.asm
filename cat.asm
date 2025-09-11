@@ -827,9 +827,6 @@ write_show_tabs:
   ccc_end
 
 ; writeout_file_content(BYTE *%0, QWORD %1) void
-;     1    x
-;     2    y
-;     3    z
 writeout_file_content:
   ccc_begin
   ; BYTE *%0: -16
