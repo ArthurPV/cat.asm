@@ -675,7 +675,7 @@ file_content_iter:
   sub rsp, 24
   mov [rbp - 16], rdi
   mov [rbp - 8], rsi
-  mov QWORD [rbp - 24], 1
+  mov QWORD [rbp - 24], 0
 
 .loop:
   mov rdi, [rbp - 8]
@@ -731,15 +731,49 @@ write_line_count:
 .exit:
   ccc_end
 
+; write_show_ends() void
+write_show_ends:
+  ccc_begin
+  test BYTE [option.E], 1
+  jz .exit
+  mov sil, '$'
+  call writeoutb
+
+.exit:
+  ccc_end
+
+; write_show_tabs() void
+write_show_tabs:
+  ccc_begin
+  test BYTE [option.T], 1
+  jz .write_tab
+  mov rdi, TAB_SUBSTITUTION
+  mov rsi, TAB_SUBSTITUTION_LEN
+  call writeout
+  jmp .exit
+
+.write_tab:
+  mov sil, 9
+  call writeoutb
+
+.exit:
+  ccc_end
+
 ; writeout_file_content(BYTE *%0, QWORD %1) void
+;     1    x
+;     2    y
+;     3    z
 writeout_file_content:
   ccc_begin
   ; BYTE *%0: -16
   ; QWORD %1: -8
-  sub rsp, 16
+  ; BYTE *current_buffer: -24
+  ; QWORD current_buffer_len: -32
+  sub rsp, 32
   mov [rbp - 16], rdi ; store %0
   mov [rbp - 8], rsi ; store %1
-  call write_line_count
+  mov QWORD [rbp - 24], 0 ; store current_buffer
+  mov QWORD [rbp - 32], 0 ; store current_buffer_len
 
 .loop:
   mov rdi, [rbp - 16]
@@ -748,64 +782,112 @@ writeout_file_content:
   mov rcx, rax
   sub rcx, [rbp - 16]
   cmp rcx, 0
-  je .exit 
-  push rax
-  push rcx
+  je .exit
+  mov rdx, [rbp - 16]
+  mov [rbp - 24], rdx
+  mov [rbp - 16], rax
+  sub [rbp - 8], rcx
+  mov [rbp - 32], rcx
+  cmp BYTE [break_by], BREAK_BY_LF
+  je .lf
+  cmp BYTE [break_by], BREAK_BY_HT
+  je .ht
+  jmp .write_line
+
+.lf:
+  dec QWORD [rbp - 32] ; avoid to write new line
+  jmp .write_line
+
+.ht:
+  ; dec QWORD [rbp - 32] ; avoid to write tab
+  jmp .write_line
+
+.write_line:
+  cmp QWORD [rbp - 32], 0
+  jle .continue
+  mov rdi, [rbp - 24]
+  mov rsi, [rbp - 32]
+  call writeout
+  jmp .continue
 
 .continue:
   cmp BYTE [break_by], BREAK_BY_EOF
   je .eof
   cmp BYTE [break_by], BREAK_BY_LF
-  je .lf
+  je .write_lf 
   cmp BYTE [break_by], BREAK_BY_HT
-  je .ht
-  cmp BYTE [break_by], BREAK_BY_NON_PRINTING
-  je .non_printing
-  jmp .line
+  je .write_ht
+  jmp .loop
 
 .eof:
   jmp .exit
 
-.lf:
-  inc QWORD [rbp - 16]
-  dec QWORD [rbp - 8]
+.write_lf:
+  call write_show_ends
   mov sil, 10
   call writeoutb
   inc QWORD [line_count]
   cmp QWORD [rbp - 8], 0
-  jg .line_count
-  jmp .loop
-
-.line_count:
+  jle .exit
   call write_line_count
   jmp .loop
 
-.ht:
-  inc QWORD [rbp - 16]
-  dec QWORD [rbp - 8]
-  mov rdi, TAB_SUBSTITUTION
-  mov rsi, TAB_SUBSTITUTION_LEN
-  call writeout
-  jmp .loop
-
-.non_printing:
-  inc QWORD [rbp - 16]
-  dec QWORD [rbp - 8]
-  ; TODO: Write something here.
-  jmp .loop
-
-.line:
-  pop rcx
-  pop rax
-  mov [rbp - 16], rax
-  sub [rbp - 8], rcx
-  mov rdi, rax
-  mov rsi, rcx
-  call writeout
+.write_ht:
+  call write_show_tabs
   jmp .loop
 
 .exit:
   ccc_end
+
+;  cmp BYTE [break_by], BREAK_BY_HT
+;  je .ht
+;  cmp BYTE [break_by], BREAK_BY_NON_PRINTING
+;  je .non_printing
+;  jmp .line
+;
+;.eof:
+;  jmp .exit
+;
+;.lf:
+;  inc QWORD [rbp - 16]
+;  dec QWORD [rbp - 8]
+;  mov sil, 10
+;  call writeoutb
+;  inc QWORD [line_count]
+;  cmp QWORD [rbp - 8], 0
+;  jg .line_count
+;  jmp .loop
+;
+;.line_count:
+;  call write_line_count
+;  jmp .line
+;
+;.ht:
+;  inc QWORD [rbp - 16]
+;  dec QWORD [rbp - 8]
+;  mov rdi, TAB_SUBSTITUTION
+;  mov rsi, TAB_SUBSTITUTION_LEN
+;  call writeout
+;  jmp .loop
+;
+;.non_printing:
+;  inc QWORD [rbp - 16]
+;  dec QWORD [rbp - 8]
+;  ; TODO: Write something here.
+;  jmp .loop
+;
+;.line:
+;  mov rax, [rbp - 24]
+;  mov rdx, [rbp - 32]
+;  mov [rbp - 16], rax 
+;  sub [rbp - 8], rdx
+;  mov rdi, rax
+;  mov rsi, rcx
+;  call writeout
+;  jmp .loop
+;
+;.exit:
+;  ccc_end
 
 ; handle_file(BYTE *%0) void
 handle_file:
@@ -828,6 +910,7 @@ handle_file:
   jl .open_error
   mov DWORD [rbp - 16], eax
   mov BYTE [can_handle_input], 1
+  call write_line_count
   jmp .read
 
 .open_error:
