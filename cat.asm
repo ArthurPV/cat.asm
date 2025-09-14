@@ -129,6 +129,8 @@ option:
 ; This prevents the user from using the dash option multiple times
 ; and entering input loops multiple times on the same file being read.
 can_handle_input: resb 1
+can_write_line_count: resb 1
+file_start: resb 1
 
 line_count: resq 1
 empty_line_count: resq 1
@@ -360,6 +362,26 @@ set_t_option:
   mov BYTE [option.T], 1
   ccc_end
 
+; set_b_option() void
+set_b_option:
+  ccc_begin
+  mov BYTE [option.b], 1
+  mov BYTE [option.n], 0
+  ccc_end
+
+; set_n_option() void
+set_n_option:
+  ccc_begin
+  test BYTE [option.b], 1
+  jz .set
+  jmp .exit
+
+.set:
+  mov BYTE [option.n], 1
+
+.exit:
+  ccc_end
+
 ; handle_long_option(BYTE *%0) void
 handle_long_option:
   ccc_begin
@@ -418,7 +440,7 @@ handle_long_option:
   jmp .exit
 
 .b:
-  mov BYTE [option.b], 1
+  call set_b_option
   jmp .exit
 
 .E:
@@ -426,7 +448,7 @@ handle_long_option:
   jmp .exit
 
 .n:
-  mov BYTE [option.n], 1
+  call set_n_option
   jmp .exit
 
 .s:
@@ -509,7 +531,7 @@ handle_short_option:
   jmp .loop
 
 .b:
-  mov BYTE [option.b], 1
+  call set_b_option
   jmp .loop
 
 .e:
@@ -521,7 +543,7 @@ handle_short_option:
   jmp .loop
 
 .n:
-  mov BYTE [option.n], 1
+  call set_n_option
   jmp .loop
 
 .s:
@@ -788,15 +810,31 @@ file_content_iter:
   add rax, [rbp - 24]
   ccc_end
 
-; write_line_count() void
+; write_line_count(QWORD %0) void
+; %0: buffer_length
 write_line_count:
   ccc_begin
-  test BYTE [option.n], 1
+  sub rsp, 8
+  mov [rbp - 8], rdi
+  test BYTE [can_write_line_count], 1
   jz .exit
+  test BYTE [option.n], 1
+  jz .b
+  jmp .write
+
+.b:
+  test BYTE [option.b], 1
+  jz .exit
+  cmp QWORD [rbp - 8], 0
+  jle .exit
+
+.write:
+  inc QWORD [line_count]
   mov rdi, [line_count]
   call write_line_number
 
 .exit:
+  mov BYTE [can_write_line_count], 0
   ccc_end
 
 ; write_show_ends() void
@@ -827,15 +865,13 @@ write_show_tabs:
 .exit:
   ccc_end
 
-; write_lf(QWORD %0, QWORD %1) void
+; write_lf(QWORD %0) void
 write_lf:
   ccc_begin
-  ; QWORD %0 (buffer_len): -8
-  ; QWORD %1 (current_buffer_len): -16
-  sub rsp, 16
+  ; QWORD %0 (current_buffer_len): -8
+  sub rsp, 8
   mov [rbp - 8], rdi ; store %0
-  mov [rbp - 16], rsi ; store %1
-  cmp QWORD [rbp - 16], 0
+  cmp QWORD [rbp - 8], 0
   je .empty_line
   jmp .non_empty_line
 
@@ -857,12 +893,9 @@ write_lf:
   call write_show_ends
   mov sil, 10
   call writeoutb
-  inc QWORD [line_count]
-  cmp QWORD [rbp - 8], 0
-  jle .exit
-  call write_line_count
 
 .exit:
+  mov BYTE [can_write_line_count], 1
   ccc_end
 
 ; writeout_file_content(BYTE *%0, QWORD %1) void
@@ -895,13 +928,19 @@ writeout_file_content:
   je .lf
   cmp BYTE [break_by], BREAK_BY_HT
   je .ht
+  mov rdi, [rbp - 32]
+  call write_line_count
   jmp .write_line
 
 .lf:
   dec QWORD [rbp - 32] ; avoid to write new line
+  mov rdi, [rbp - 32]
+  call write_line_count
   jmp .write_line
 
 .ht:
+  mov rdi, [rbp - 32]
+  call write_line_count
   dec QWORD [rbp - 32] ; avoid to write tab
   jmp .write_line
 
@@ -926,8 +965,7 @@ writeout_file_content:
   jmp .exit
 
 .write_lf:
-  mov rdi, [rbp - 8]
-  mov rsi, [rbp - 32]
+  mov rdi, [rbp - 32]
   call write_lf
   jmp .loop
 
@@ -959,7 +997,7 @@ handle_file:
   jl .open_error
   mov DWORD [rbp - 16], eax
   mov BYTE [can_handle_input], 1
-  call write_line_count
+  mov BYTE [can_write_line_count], 1
   jmp .read
 
 .open_error:
@@ -1078,7 +1116,6 @@ main:
   mov [rbp - 16], edi ; store %0
   mov [rbp - 8], rsi ; store %1
   cmp DWORD [rbp - 16], 1
-  mov QWORD [line_count], 1 ; store line_count=1
   jle .handle_input
 
 .handle_args:
