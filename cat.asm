@@ -114,6 +114,224 @@ BREAK_BY_LF: equ 2
 BREAK_BY_HT: equ 3
 BREAK_BY_NON_PRINTING: equ 4
 
+CH_0: db "^@", 0
+CH_1: db "^A", 0
+CH_2: db "^B", 0
+CH_3: db "^C", 0
+CH_4: db "^D", 0
+CH_5: db "^E", 0
+CH_6: db "^F", 0
+CH_7: db "^G", 0
+CH_8: db "^H", 0
+; NOTE: 0x09 and 0x0A are considered as printing characters
+CH_11: db "^K", 0
+CH_12: db "^L", 0
+CH_13: db "^M", 0
+CH_14: db "^N", 0
+CH_15: db "^O", 0
+CH_16: db "^P", 0
+CH_17: db "^Q", 0
+CH_18: db "^R", 0
+CH_19: db "^S", 0
+CH_20: db "^T", 0
+CH_21: db "^U", 0
+CH_22: db "^V", 0
+CH_23: db "^W", 0
+CH_24: db "^X", 0
+CH_25: db "^Y", 0
+CH_26: db "^Z", 0
+CH_27: db "^[", 0
+CH_28: db "^\", 0
+CH_29: db "^]", 0
+CH_30: db "^^", 0
+CH_31: db "^_", 0
+CH_127: db "^?", 0
+CH_128: db "M-^@", 0
+CH_129: db "M-^A", 0
+CH_130: db "M-^B", 0
+CH_131: db "M-^C", 0
+CH_132: db "M-^D", 0
+CH_133: db "M-^E", 0
+CH_134: db "M-^F", 0
+CH_135: db "M-^G", 0
+CH_136: db "M-^H", 0
+CH_137: db "M-^I", 0
+CH_138: db "M-^J", 0
+CH_139: db "M-^K", 0
+CH_140: db "M-^L", 0
+CH_141: db "M-^M", 0
+CH_142: db "M-^N", 0
+CH_143: db "M-^O", 0
+CH_144: db "M-^P", 0
+CH_145: db "M-^Q", 0
+CH_146: db "M-^R", 0
+CH_147: db "M-^S", 0
+CH_148: db "M-^T", 0
+CH_149: db "M-^U", 0
+CH_150: db "M-^V", 0
+CH_151: db "M-^W", 0
+CH_152: db "M-^X", 0
+CH_153: db "M-^Y", 0
+CH_154: db "M-^Z", 0
+CH_155: db "M-^[", 0
+CH_156: db "M-^\",0
+CH_157: db "M-^]", 0
+CH_158: db "M-^^", 0
+CH_159: db "M-^_", 0
+CH_160: db "M- ", 0
+CH_161: db "M-!", 0
+CH_162: db 'M-"', 0
+CH_163: db "M-#", 0
+CH_164: db "M-$", 0
+CH_165: db "M-%", 0
+CH_166: db "M-&", 0
+CH_167: db "M-'", 0
+CH_168: db "M-(", 0
+CH_169: db "M-)", 0
+CH_170: db "M-*", 0
+CH_171: db "M-+", 0
+CH_172: db "M-,", 0
+CH_173: db "M--", 0
+CH_174: db "M-.", 0
+CH_175: db "M-/", 0
+CH_176: db "M-0", 0
+CH_177: db "M-1", 0
+CH_178: db "M-2", 0
+CH_179: db "M-3", 0
+CH_180: db "M-4", 0
+CH_181: db "M-5", 0
+CH_182: db "M-6", 0
+CH_183: db "M-7", 0
+CH_184: db "M-8", 0
+CH_185: db "M-9", 0
+CH_186: db "M-:", 0
+CH_187: db "M-;", 0
+CH_188: db "M-<", 0
+CH_189: db "M-=", 0
+CH_190: db "M->", 0
+CH_191: db "M-?", 0
+CH_192: db "M-@", 0
+CH_193: db "M-A", 0
+CH_194: db "M-B", 0
+CH_195: db "M-C", 0
+CH_196: db "M-D", 0
+CH_197: db "M-E", 0
+CH_198: db "M-F", 0
+CH_199: db "M-G", 0
+CH_200: db "M-H", 0
+CH_201: db "M-I", 0
+CH_202: db "M-J", 0
+CH_203: db "M-K", 0
+CH_204: db "M-L", 0
+CH_205: db "M-M", 0
+CH_206: db "M-N", 0
+CH_207: db "M-O", 0
+CH_208: db "M-P", 0
+CH_209: db "M-Q", 0
+CH_210: db "M-R", 0
+CH_211: db "M-S", 0
+CH_212: db "M-T", 0
+CH_213: db "M-U", 0
+CH_214: db "M-V", 0
+CH_215: db "M-W", 0
+CH_216: db "M-X", 0
+CH_217: db "M-Y", 0
+CH_218: db "M-Z", 0
+CH_219: db "M-[", 0
+CH_220: db "M-\", 0
+CH_221: db "M-]", 0
+CH_222: db "M-^", 0
+CH_223: db "M-_", 0
+CH_224: db "M-`", 0
+CH_225: db "M-a", 0
+CH_226: db "M-b", 0
+CH_227: db "M-c", 0
+CH_228: db "M-d", 0
+CH_229: db "M-e", 0
+CH_230: db "M-f", 0
+CH_231: db "M-g", 0
+CH_232: db "M-h", 0
+CH_233: db "M-i", 0
+CH_234: db "M-j", 0
+CH_235: db "M-k", 0
+CH_236: db "M-l", 0
+CH_237: db "M-m", 0
+CH_238: db "M-n", 0
+CH_239: db "M-o", 0
+CH_240: db "M-p", 0
+CH_241: db "M-q", 0
+CH_242: db "M-r", 0
+CH_243: db "M-s", 0
+CH_244: db "M-t", 0
+CH_245: db "M-u", 0
+CH_246: db "M-v", 0
+CH_247: db "M-w", 0
+CH_248: db "M-x", 0
+CH_249: db "M-y", 0
+CH_250: db "M-z", 0
+CH_251: db "M-{", 0
+CH_252: db "M-|", 0
+CH_253: db "M-}", 0
+CH_254: db "M-~", 0
+CH_255: db "M-^?", 0
+
+; null (0) = printing
+; non-null = non-printing
+non_printing_characters_table:
+  dq CH_0, CH_1, CH_2, CH_3
+  dq CH_4, CH_5, CH_6, CH_7
+  dq CH_8, 0, 0, CH_11
+  dq CH_12, CH_13, CH_14, CH_15
+  dq CH_16, CH_17, CH_18, CH_19
+  dq CH_20, CH_21, CH_22, CH_23
+  dq CH_24, CH_25, CH_26, CH_27
+  dq CH_28, CH_29, CH_30, CH_31
+  dq 0, 0, 0, 0, 0, 0, 0, 0 ; 32–39 (printable)
+  dq 0, 0, 0, 0, 0, 0, 0, 0 ; 40–47
+  dq 0, 0, 0, 0, 0, 0, 0, 0 ; 48–55
+  dq 0, 0, 0, 0, 0, 0, 0, 0 ; 56–63
+  dq 0, 0, 0, 0, 0, 0, 0, 0 ; 64–71
+  dq 0, 0, 0, 0, 0, 0, 0, 0 ; 72–79
+  dq 0, 0, 0, 0, 0, 0, 0, 0 ; 80–87
+  dq 0, 0, 0, 0, 0, 0, 0, 0 ; 88–95
+  dq 0, 0, 0, 0, 0, 0, 0, 0 ; 96–103
+  dq 0, 0, 0, 0, 0, 0, 0, 0 ; 104–111
+  dq 0, 0, 0, 0, 0, 0, 0, 0 ; 112–119
+  dq 0, 0, 0, 0, 0, 0, 0 ; 120–126
+  dq CH_127 ; <DEL>
+  dq CH_128, CH_129, CH_130, CH_131
+  dq CH_132, CH_133, CH_134, CH_135
+  dq CH_136, CH_137, CH_138, CH_139
+  dq CH_140, CH_141, CH_142, CH_143
+  dq CH_144, CH_145, CH_146, CH_147
+  dq CH_148, CH_149, CH_150, CH_151
+  dq CH_152, CH_153, CH_154, CH_155
+  dq CH_156, CH_157, CH_158, CH_159
+  dq CH_160, CH_161, CH_162, CH_163
+  dq CH_164, CH_165, CH_166, CH_167
+  dq CH_168, CH_169, CH_170, CH_171
+  dq CH_172, CH_173, CH_174, CH_175
+  dq CH_176, CH_177, CH_178, CH_179
+  dq CH_180, CH_181, CH_182, CH_183
+  dq CH_184, CH_185, CH_186, CH_187
+  dq CH_188, CH_189, CH_190, CH_191
+  dq CH_192, CH_193, CH_194, CH_195
+  dq CH_196, CH_197, CH_198, CH_199
+  dq CH_200, CH_201, CH_202, CH_203
+  dq CH_204, CH_205, CH_206, CH_207
+  dq CH_208, CH_209, CH_210, CH_211
+  dq CH_212, CH_213, CH_214, CH_215
+  dq CH_216, CH_217, CH_218, CH_219
+  dq CH_220, CH_221, CH_222, CH_223
+  dq CH_224, CH_225, CH_226, CH_227
+  dq CH_228, CH_229, CH_230, CH_231
+  dq CH_232, CH_233, CH_234, CH_235
+  dq CH_236, CH_237, CH_238, CH_239
+  dq CH_240, CH_241, CH_242, CH_243
+  dq CH_244, CH_245, CH_246, CH_247
+  dq CH_248, CH_249, CH_250, CH_251
+  dq CH_252, CH_253, CH_254, CH_255
+
 section .bss
 
 option:
@@ -756,6 +974,29 @@ _write_right_spaces:
 .exit:
   ccc_end
 
+; is_non_printing_character(BYTE %0)
+is_non_printing_character:
+  ccc_begin
+  sub rsp, 1
+  mov [rbp - 1], sil
+  mov al, [rbp - 1]
+  movzx rsi, al
+  mov rbx, non_printing_characters_table
+  mov rdi, [rbx + rsi * 8]
+  test rdi, rdi
+  jz .zero
+  jmp .one
+
+.zero:
+  mov al, 0
+  jmp .exit
+
+.one:
+  mov al, 1
+
+.exit:
+  ccc_end
+
 ; file_content_iter(BYTE *%0, QWORD %1) BYTE*
 file_content_iter:
   ccc_begin
@@ -766,6 +1007,7 @@ file_content_iter:
   mov [rbp - 16], rdi
   mov [rbp - 8], rsi
   mov QWORD [rbp - 24], 0
+  mov BYTE [break_by], 0
 
 .loop:
   mov rdi, [rbp - 8]
@@ -778,6 +1020,11 @@ file_content_iter:
   je .lf
   cmp al, 9
   je .ht
+  mov sil, al
+  call is_non_printing_character
+  test al, al
+  jz .continue
+  jmp .non_printing
 
 .continue:
   inc QWORD [rbp - 24]
@@ -804,6 +1051,8 @@ file_content_iter:
   test BYTE [option.v], 1
   jz .continue
   mov BYTE [break_by], BREAK_BY_NON_PRINTING
+  inc QWORD [rbp - 24]
+  jmp .exit
 
 .exit:
   mov rax, [rbp - 16]
@@ -944,6 +1193,8 @@ writeout_file_content:
   je .lf
   cmp BYTE [break_by], BREAK_BY_HT
   je .ht
+  cmp BYTE [break_by], BREAK_BY_NON_PRINTING
+  je .non_printing
   mov rdi, [rbp - 8]
   mov rsi, [rbp - 32]
   call write_line_count
@@ -963,6 +1214,13 @@ writeout_file_content:
   dec QWORD [rbp - 32] ; avoid to write tab
   jmp .write_line
 
+.non_printing:
+  mov rdi, [rbp - 8]
+  mov rsi, [rbp - 32]
+  call write_line_count
+  dec QWORD [rbp - 32] ; avoid to write non printing character
+  jmp .write_line
+
 .write_line:
   cmp QWORD [rbp - 32], 0
   jle .continue
@@ -978,6 +1236,8 @@ writeout_file_content:
   je .write_lf 
   cmp BYTE [break_by], BREAK_BY_HT
   je .write_ht
+  cmp BYTE [break_by], BREAK_BY_NON_PRINTING
+  je .write_non_printing
   jmp .loop
 
 .eof:
@@ -990,6 +1250,20 @@ writeout_file_content:
 
 .write_ht:
   call write_show_tabs
+  jmp .loop
+
+.write_non_printing:
+  mov rsi, [rbp - 16]
+  dec rsi
+  mov al, [rsi]
+  movzx rsi, al
+  mov rbx, non_printing_characters_table
+  mov rdi, [rbx + rsi * 8]
+  push rdi
+  call memlen
+  pop rdi
+  mov rsi, rax
+  call writeout
   jmp .loop
 
 .exit:
