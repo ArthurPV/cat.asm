@@ -48,10 +48,10 @@ HELP : db "Usage: cat [OPTION]... [FILE]...", 10
   .17: db "  cat        Copy standard input to standard output.", 10, 10
   .18: db "GNU coreutils online help: <https://www.gnu.org/software/coreutils/>", 10
   .19: db "Full documentation <https://www.gnu.org/software/coreutils/cat>", 10
-  .20: db "or available locally via: info '(coreutils) cat invocation'", 10, 0
+  .20: db "or available locally via: info '(coreutils) cat invocation'", 10
 HELP_LEN: equ $-HELP
 
-VERSION: db "cat (Linux x86_64 ASM clone) 0.0", 10, 0
+VERSION: db "cat (Linux x86_64 ASM clone) 0.0", 10
 VERSION_LEN: equ $-VERSION
 
 INVALID_OPTION: db "cat: invalid option -- '%'", 10, "Try cat --help for more information", 10, 0
