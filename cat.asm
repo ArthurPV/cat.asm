@@ -977,6 +977,7 @@ _write_right_spaces:
 ; is_non_printing_character(BYTE %0)
 is_non_printing_character:
   ccc_begin
+  ; BYTE %0: -1
   sub rsp, 1
   mov [rbp - 1], sil
   mov al, [rbp - 1]
