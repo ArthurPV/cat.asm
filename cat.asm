@@ -130,7 +130,7 @@ option:
 ; and entering input loops multiple times on the same file being read.
 can_handle_input: resb 1
 can_write_line_count: resb 1
-file_start: resb 1
+has_handled_files: resb 1
 
 line_count: resq 1
 empty_line_count: resq 1
@@ -812,21 +812,36 @@ file_content_iter:
 
 ; write_line_count(QWORD %0) void
 ; %0: buffer_length
+; %1: current_buffer_length
 write_line_count:
   ccc_begin
-  sub rsp, 8
+  sub rsp, 16
+  ; QWORD %0 (buffer_length): -8
+  ; QWORD %1 (current_buffer_length): -16
   mov [rbp - 8], rdi
+  mov [rbp - 16], rsi
+  ; cmp QWORD [rbp - 8], 0
+  ; je .exit
   test BYTE [can_write_line_count], 1
   jz .exit
   test BYTE [option.n], 1
   jz .b
-  jmp .write
+  jmp .s
 
 .b:
   test BYTE [option.b], 1
   jz .exit
-  cmp QWORD [rbp - 8], 0
+  cmp QWORD [rbp - 16], 0
   jle .exit
+
+.s:
+  test BYTE [option.s], 1
+  jz .write
+  cmp QWORD [empty_line_count], 1
+  jl .write
+  cmp QWORD [rbp - 16], 0
+  jg .write
+  jmp .exit
 
 .write:
   inc QWORD [line_count]
@@ -918,7 +933,8 @@ writeout_file_content:
   mov rcx, rax
   sub rcx, [rbp - 16]
   cmp rcx, 0
-  je .exit
+  ; je .exit
+  jle .exit
   mov rdx, [rbp - 16]
   mov [rbp - 24], rdx
   mov [rbp - 16], rax
@@ -928,18 +944,21 @@ writeout_file_content:
   je .lf
   cmp BYTE [break_by], BREAK_BY_HT
   je .ht
-  mov rdi, [rbp - 32]
+  mov rdi, [rbp - 8]
+  mov rsi, [rbp - 32]
   call write_line_count
   jmp .write_line
 
 .lf:
   dec QWORD [rbp - 32] ; avoid to write new line
-  mov rdi, [rbp - 32]
+  mov rdi, [rbp - 8]
+  mov rsi, [rbp - 32]
   call write_line_count
   jmp .write_line
 
 .ht:
-  mov rdi, [rbp - 32]
+  mov rdi, [rbp - 8]
+  mov rsi, [rbp - 32]
   call write_line_count
   dec QWORD [rbp - 32] ; avoid to write tab
   jmp .write_line
@@ -988,6 +1007,7 @@ handle_file:
   call option_n
   cmp eax, 0
   jne .handle_input
+  mov BYTE [has_handled_files], 1
   mov rax, SYS_OPEN
   mov rdi, [rbp - 8]
   mov esi, O_RDONLY
@@ -1087,6 +1107,7 @@ handle_input:
   ccc_begin
   ; BYTE buffer[BUFSIZ]: BUFSIZ (8192)
   sub rsp, BUFSIZ
+  mov BYTE [can_write_line_count], 1
 
 .loop: 
   mov rax, SYS_READ
@@ -1101,7 +1122,7 @@ handle_input:
 .write_buffer:
   lea rdi, [rbp - BUFSIZ]
   mov rsi, rax
-  call writeout
+  call writeout_file_content
   jmp .loop
 
 .exit:
@@ -1115,8 +1136,6 @@ main:
   sub rsp, 16
   mov [rbp - 16], edi ; store %0
   mov [rbp - 8], rsi ; store %1
-  cmp DWORD [rbp - 16], 1
-  jle .handle_input
 
 .handle_args:
   mov edi, [rbp - 16]
@@ -1125,6 +1144,8 @@ main:
   mov edi, [rbp - 16]
   mov rsi, [rbp - 8]
   call handle_files
+  test BYTE [has_handled_files], 1
+  jz .handle_input
   jmp .exit
 
 .handle_input:
