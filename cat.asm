@@ -1406,8 +1406,8 @@ handle_input:
 ; main(DWORD %0, BYTE **%1) DWORD
 main:
   ccc_begin
-  ; DWORD %0 (argc): -8
-  ; BYTE **%1 (argv): -16
+  ; DWORD %0 (argc): -16
+  ; BYTE **%1 (argv): -8
   sub rsp, 16
   mov [rbp - 16], edi ; store %0
   mov [rbp - 8], rsi ; store %1
